@@ -1346,7 +1346,7 @@ color: rgb(255, 255, 255);</string>
        <rect>
         <x>175</x>
         <y>77</y>
-        <width>39</width>
+        <width>81</width>
         <height>21</height>
        </rect>
       </property>
@@ -1396,6 +1396,9 @@ color: rgb(255, 255, 255);</string>
       </property>
       <property name="smallDecimalPoint">
        <bool>true</bool>
+      </property>
+      <property name="digitCount">
+       <number>6</number>
       </property>
       <property name="segmentStyle">
        <enum>QLCDNumber::Filled</enum>
@@ -1566,19 +1569,6 @@ color: rgb(255, 255, 255);</string>
       </property>
       <property name="text">
        <string>Set speed</string>
-      </property>
-     </widget>
-     <widget class="QLabel" name="label_21">
-      <property name="geometry">
-       <rect>
-        <x>220</x>
-        <y>77</y>
-        <width>22</width>
-        <height>16</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string>A.U.</string>
       </property>
      </widget>
     </widget>

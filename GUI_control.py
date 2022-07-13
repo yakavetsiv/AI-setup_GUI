@@ -6,9 +6,11 @@ Created on Sun Feb 20 16:05:29 2022
 """
 import sys
 from PyQt5 import QtWidgets, uic
+from PyQt5.QtCore import QObject, QThread, pyqtSignal
 
 
 from instruments.pumps.tecan_pump import Pump
+from instruments.pumps.pump_worker import Pump_worker
 from instruments.hotplates.hotplate_ard import Hotplate
 from instruments.thorlabs.powermeter.TLPM import TLPM
 
@@ -40,7 +42,11 @@ power_name = b"USB0::0x1313::0x807B::220201226::INSTR"
 pump_name = 'ASRL1::INSTR'
 spect_name = r'USB::0x1313::0x8089::M00802700::RAW'
 hotplate_name = "COM7"
-  
+
+
+
+
+
 
 class SecondWindow(QtWidgets.QMainWindow):
     def __init__(self, sp_type):
@@ -237,48 +243,89 @@ class MainWindow(QtWidgets.QMainWindow):
         self.hotplate_set_temp_B.clicked.connect(self.hotplate_set_temp)
         self.hotplate_check_temp_B.clicked.connect(self.hotplate_read_temp)
          
+    
+    def pump_task(self, cmd, values):
+        self.thread = QThread()
+        # Step 3: Create a worker object
+        self.worker = Pump_worker(self.pump, cmd, values)
         
+        self.volume_group.setEnabled(False)
+        self.speed_group.setEnabled(False)
+        self.command_group.setEnabled(False)
+        self.vol_text.setText('-- uL')
+        # Step 4: Move worker to the thread
+        self.worker.moveToThread(self.thread)
+        # Step 5: Connect signals and slots
+        self.thread.started.connect(self.worker.run)
+        self.worker.finished.connect(self.thread.quit)
+        self.worker.finished.connect(self.worker.deleteLater)
+        self.thread.finished.connect(self.thread.deleteLater)
+        #self.worker.progress.connect(self.reportProgress)
+        # Step 6: Start the thread
+        self.thread.start()
+
+        # Final resets
+        self.thread.finished.connect(
+            lambda: self.update_pump()
+        )
+        
+        self.thread.finished.connect(lambda: self.volume_group.setEnabled(True))
+        self.thread.finished.connect(lambda: self.speed_group.setEnabled(True))
+        self.thread.finished.connect(lambda: self.command_group.setEnabled(True))
+
+    
     def pull_10(self):
+              
         self.port = self.valve.value()
-        self.pump.load(self.port, 10)
+        self.pump_task(1, [self.port, 10])
+
+        #self.pump.load(self.port, 10)
         self.update_pump()
     
     def pull_100(self):
         self.port = self.valve.value()
-        self.pump.load(self.port, 100)
-        self.update_pump()
+        self.pump_task(1, [self.port, 100])
+        #self.pump.load(self.port, 100)
+        #self.update_pump()
         
     def pull_max(self):
         self.port = self.valve.value()
-        self.pump.load_all(self.port)
-        self.update_pump()
+        self.pump_task(1, [self.port, -1])
+        #self.pump.load_all(self.port)
+        #self.update_pump()
         
     def pull_custom(self):
         self.port = self.valve.value()
         volume = self.pull_vol.value()
-        self.pump.load(self.port, volume)
-        self.update_pump()
+        
+        self.pump_task(1, [self.port, volume])
+        #self.pump.load(self.port, volume)
+        #self.update_pump()
         
     def push_10(self):
         self.port = self.valve.value()
-        self.pump.inject(self.port, 10)
-        self.update_pump()
+        self.pump_task(2, [self.port, 10])
+        #self.pump.inject(self.port, 10)
+        #self.update_pump()
     
     def push_100(self):
         self.port = self.valve.value()
-        self.pump.inject(self.port, 100)
-        self.update_pump()
+        self.pump_task(2, [self.port, 100])
+        #self.pump.inject(self.port, 100)
+        #self.update_pump()
         
     def push_max(self):
         self.port = self.valve.value()
-        self.pump.inject_all(self.port)
-        self.update_pump()
+        self.pump_task(2, [self.port, -1])
+        #self.pump.inject_all(self.port)
+        #self.update_pump()
         
     def push_custom(self):
         self.port = self.valve.value()
         volume = self.push_vol.value()
-        self.pump.inject(self.port, volume)
-        self.update_pump()
+        self.pump_task(2, [self.port, volume])
+        #self.pump.inject(self.port, volume)
+        #self.update_pump()
     
     def init_pump(self):
         self.pump = Pump(pump_name, syringe_volume = 2500)
@@ -538,6 +585,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def hotplate_read_temp(self):        
         temp_val = self.hp.read_temp()
         self.temp_LCD.display(temp_val)
+        print(temp_val)
         
         
         
